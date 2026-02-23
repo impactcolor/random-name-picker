@@ -135,7 +135,11 @@ export default class Slot {
     }
 
     const REEL_ITEM_HEIGHT_IN_PX = 7.5 * 16;
-    const REEL_ITEM_DURATION_IN_MS = 100;
+    const TOTAL_SPIN_DURATION_IN_MS = 10000;
+    const FINAL_SLOWDOWN_DURATION_IN_MS = 3000;
+    const FINAL_SLOWDOWN_ITEM_COUNT = 3;
+    const FAST_PHASE_RATIO = (TOTAL_SPIN_DURATION_IN_MS - FINAL_SLOWDOWN_DURATION_IN_MS)
+      / TOTAL_SPIN_DURATION_IN_MS;
 
     // Shuffle names and create reel items
     const randomNames = Slot.shuffleNames<string>(this.nameList);
@@ -150,19 +154,27 @@ export default class Slot {
     });
 
     reelContainer.appendChild(fragment);
+    const totalDistance = (randomNames.length - 1) * REEL_ITEM_HEIGHT_IN_PX;
+    const fastPhaseItemCount = Math.max(0, randomNames.length - 1 - FINAL_SLOWDOWN_ITEM_COUNT);
+    const fastPhaseDistance = fastPhaseItemCount * REEL_ITEM_HEIGHT_IN_PX;
 
     const reelAnimation = reelContainer.animate(
       [
-        { transform: 'none', filter: 'blur(0)' },
-        { filter: 'blur(1px)', offset: 0.5 },
+        { offset: 0, transform: 'translateY(0)', filter: 'blur(1.5px)', easing: 'linear' },
         {
-          transform: `translateY(-${(randomNames.length - 1) * REEL_ITEM_HEIGHT_IN_PX}px)`,
+          offset: FAST_PHASE_RATIO,
+          transform: `translateY(-${fastPhaseDistance}px)`,
+          filter: 'blur(1px)',
+          easing: 'cubic-bezier(0.12, 0.75, 0.2, 1)'
+        },
+        {
+          offset: 1,
+          transform: `translateY(-${totalDistance}px)`,
           filter: 'blur(0)'
         }
       ],
       {
-        duration: randomNames.length * REEL_ITEM_DURATION_IN_MS,
-        easing: 'ease-in-out',
+        duration: TOTAL_SPIN_DURATION_IN_MS,
         iterations: 1
       }
     );

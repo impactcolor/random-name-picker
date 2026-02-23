@@ -149,10 +149,11 @@ import SoundEffects from '@js/SoundEffects';
 
   /**  Function to be trigger before spinning */
   const onSpinStart = () => {
+    const SPIN_DURATION_IN_SECONDS = 10;
     stopWinningAnimation();
     drawButton.disabled = true;
     settingsButton.disabled = true;
-    soundEffects.spin(slot.names.length / 10);
+    soundEffects.spin(SPIN_DURATION_IN_SECONDS);
   };
 
   /**  Functions to be trigger after spinning */
