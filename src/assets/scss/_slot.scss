@@ -27,6 +27,29 @@
     height: auto;
     display: block;
   }
+
+  &__text {
+    margin: 0;
+    font-size: 4rem;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-shadow:
+      -2px -2px 0 currentColor,
+      2px -2px 0 currentColor,
+      -2px 2px 0 currentColor,
+      2px 2px 0 currentColor;
+    color: $color-white;
+  }
+
+  @each $media-query, $factor in $scale-factors {
+    @media #{$media-query} {
+      .title__text {
+        font-size: max(2rem, 4rem * $factor);
+      }
+    }
+  }
 }
 
 .control-group {
