@@ -19,6 +19,14 @@
   display: inline-block;
 }
 
+.input-helper {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: rgba($color-text-light, 0.9);
+  min-height: 1.25rem;
+}
+
 .input-field {
   background-color: $color-input-background;
   border-radius: 0.25rem;

@@ -14,6 +14,8 @@ import SoundEffects from '@js/SoundEffects';
   const sunburstSvg = document.getElementById('sunburst') as HTMLImageElement | null;
   const confettiCanvas = document.getElementById('confetti-canvas') as HTMLCanvasElement | null;
   const nameListTextArea = document.getElementById('name-list') as HTMLTextAreaElement | null;
+  const nameListFileInput = document.getElementById('name-list-file') as HTMLInputElement | null;
+  const nameListFileFeedback = document.getElementById('name-list-file-feedback') as HTMLParagraphElement | null;
   const removeNameFromListCheckbox = document.getElementById('remove-from-list') as HTMLInputElement | null;
   const enableSoundCheckbox = document.getElementById('enable-sound') as HTMLInputElement | null;
 
@@ -29,6 +31,8 @@ import SoundEffects from '@js/SoundEffects';
     && sunburstSvg
     && confettiCanvas
     && nameListTextArea
+    && nameListFileInput
+    && nameListFileFeedback
     && removeNameFromListCheckbox
     && enableSoundCheckbox
   )) {
@@ -77,6 +81,73 @@ import SoundEffects from '@js/SoundEffects';
     sunburstSvg.style.display = 'none';
   };
 
+  const parseCsvRows = (csvText: string): string[][] => {
+    const rows: string[][] = [];
+    let currentRow: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+    const text = csvText.replace(/^\uFEFF/, '');
+
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (char === ',' && !inQuotes) {
+        currentRow.push(currentField);
+        currentField = '';
+        continue;
+      }
+
+      if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i += 1;
+        }
+        currentRow.push(currentField);
+        rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+        continue;
+      }
+
+      currentField += char;
+    }
+
+    currentRow.push(currentField);
+    const hasData = currentRow.some((value) => value.trim().length > 0);
+    if (hasData) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  };
+
+  const extractNamesFromCsv = (csvText: string): string[] => {
+    const rows = parseCsvRows(csvText);
+    const firstPopulatedRowIndex = rows.findIndex((row) => row.some((cell) => cell.trim()));
+    const startIndex = firstPopulatedRowIndex === -1
+      ? rows.length
+      : firstPopulatedRowIndex;
+
+    const hasNameHeader = startIndex < rows.length
+      && /^names?$/i.test((rows[startIndex][0] || '').trim());
+    const firstDataRowIndex = hasNameHeader ? startIndex + 1 : startIndex;
+
+    return rows
+      .slice(firstDataRowIndex)
+      .map((row) => (row[0] || '').trim())
+      .filter((name) => Boolean(name));
+  };
+
   /**  Function to be trigger before spinning */
   const onSpinStart = () => {
     stopWinningAnimation();
@@ -106,6 +177,8 @@ import SoundEffects from '@js/SoundEffects';
   /** To open the setting page */
   const onSettingsOpen = () => {
     nameListTextArea.value = slot.names.length ? slot.names.join('\n') : '';
+    nameListFileInput.value = '';
+    nameListFileFeedback.textContent = '';
     removeNameFromListCheckbox.checked = slot.shouldRemoveWinnerFromNameList;
     enableSoundCheckbox.checked = !soundEffects.mute;
     settingsWrapper.style.display = 'block';
@@ -148,6 +221,30 @@ import SoundEffects from '@js/SoundEffects';
 
   // Click handler for "Settings" button
   settingsButton.addEventListener('click', onSettingsOpen);
+
+  // Upload CSV names and fill name textarea
+  nameListFileInput.addEventListener('change', async (event) => {
+    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const fileText = await file.text();
+      const names = extractNamesFromCsv(fileText);
+
+      if (!names.length) {
+        nameListFileFeedback.textContent = `No names found in ${file.name}.`;
+        return;
+      }
+
+      nameListTextArea.value = names.join('\n');
+      nameListFileFeedback.textContent = `Imported ${names.length} name${names.length === 1 ? '' : 's'} from ${file.name}.`;
+    } catch (error) {
+      console.error(error);
+      nameListFileFeedback.textContent = `Could not read ${file.name}. Please try another CSV file.`;
+    }
+  });
 
   // Click handler for "Save" button for setting page
   settingsSaveButton.addEventListener('click', () => {
